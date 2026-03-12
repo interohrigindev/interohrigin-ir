@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+
+  /* Brand purple palette based on #2d2959 */
+  --color-brand-50:  #eee9ff;
+  --color-brand-100: #d9d0ff;
+  --color-brand-200: #b3a1f0;
+  --color-brand-300: #8c72e0;
+  --color-brand-400: #6a4fcf;
+  --color-brand-500: #4a3a9f;
+  --color-brand-600: #3b2f80;
+  --color-brand-700: #2d2959;
+  --color-brand-800: #211e45;
+  --color-brand-900: #161333;
+  --color-brand-950: #0c0a1f;
+
+  /* Brand gold accent #b19468 */
+  --color-gold-50:  #faf6f0;
+  --color-gold-100: #f0e6d4;
+  --color-gold-200: #dfc9a5;
+  --color-gold-300: #ccab78;
+  --color-gold-400: #b19468;
+  --color-gold-500: #9a7d52;
+  --color-gold-600: #7d6340;
+  --color-gold-700: #614c30;
+  --color-gold-800: #463722;
+  --color-gold-900: #2e2416;
+}
+
+/* ScrollSmoother가 스크롤을 제어하므로 smooth 제거 — 충돌 방지 */
+body { -webkit-font-smoothing: antialiased; }
+
+/* ── Marquee ── */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@utility animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+/* ── Gradient drift ── */
+@keyframes drift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+@utility animate-drift {
+  animation: drift 12s ease infinite;
+}
+
+/* ── Scroll line ── */
+@keyframes scroll-line {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+@utility animate-scroll-line {
+  animation: scroll-line 1.8s ease-in-out infinite;
+}
+
+/* ── Vertical writing ── */
+@utility writing-vertical {
+  writing-mode: vertical-rl;
+}
+
+/* ── Scrollbar hide ── */
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* ── Fade in up ── */
+@keyframes fade-in-up {
+  0%   { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@utility animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out both;
+}
+
+/* ── Toast slide up ── */
+@keyframes slide-up {
+  0%   { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@utility animate-slide-up {
+  animation: slide-up 0.3s ease-out both;
+}
+
+/* ── Mobile fullscreen menu overlay body lock ── */
+body[style*="overflow: hidden"] {
+  touch-action: none;
+  -webkit-overflow-scrolling: auto;
+}
