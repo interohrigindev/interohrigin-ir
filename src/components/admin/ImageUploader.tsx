@@ -3,7 +3,6 @@ import { Upload, X, Image as ImageIcon, Info } from 'lucide-react';
 import { uploadImage } from '../../lib/storage';
 
 const MAX_SIZE_MB = 3;
-const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 const GUIDE_TEXT = `권장: WebP/JPG, 가로 1920~2560px, ${MAX_SIZE_MB}MB 이하 (히어로는 1MB 내외가 이상적) · squoosh.app에서 변환`;
 
 interface Props {
