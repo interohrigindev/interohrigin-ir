@@ -87,7 +87,7 @@ export default function ClosingCTA() {
           className="font-black text-white tracking-tight leading-[1.1]"
           style={{ fontSize: 'clamp(1.5rem, 5vw, 3.75rem)' }}
         >
-          {lang === 'en' ? (
+          {lang !== 'ko' ? (
             <>Discovering brand value<br />and <span className="text-gold-400">sharing it</span><br />with the world.</>
           ) : (
             <>브랜드의 가치를 발견하고,<br /><span className="text-gold-400">세상에 전하는 것</span>이<br />우리의 사명입니다.</>
@@ -95,7 +95,7 @@ export default function ClosingCTA() {
         </h2>
 
         <p className="mt-4 md:mt-8 text-sm md:text-lg text-white/50 max-w-xl mx-auto leading-relaxed">
-          {lang === 'en'
+          {lang !== 'ko'
             ? 'Contact us for global K-Beauty distribution partnerships.'
             : '글로벌 K-Beauty 유통 파트너십에 대해 문의해 주세요.'}
         </p>
@@ -107,7 +107,7 @@ export default function ClosingCTA() {
         >
           <span className="absolute inset-0 bg-brand-400 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out" />
           <span className="relative z-10 flex items-center gap-2">
-            {lang === 'en' ? 'Contact Us' : '문의하기'} <ArrowRight className="w-4 h-4" />
+            {lang !== 'ko' ? 'Contact Us' : '문의하기'} <ArrowRight className="w-4 h-4" />
           </span>
         </Link>
       </div>

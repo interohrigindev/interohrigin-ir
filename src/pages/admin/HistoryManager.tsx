@@ -1,13 +1,19 @@
 import { useEffect, useState, useRef, type FormEvent } from 'react';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, updateDoc, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
-import { Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { translateTexts, isDeeplAvailable } from '../../lib/deepl';
+import { useToast } from '../../components/admin/Toast';
+import { useEnabledLanguages } from '../../hooks/useEnabledLanguages';
+import { LANGUAGE_META } from '../../lib/languages';
+import { Plus, Trash2, Edit2, Check, X, Languages, Loader2, ChevronDown } from 'lucide-react';
 
 interface HistoryItem {
   id: string;
   year: string;
   title: string;
   description?: string;
+  title_en?: string;
+  description_en?: string;
   order: number;
 }
 
@@ -24,6 +30,7 @@ const seedData: Omit<HistoryItem, 'id'>[] = [
 ];
 
 export default function HistoryManager() {
+  const { toast } = useToast();
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [year, setYear] = useState('');
   const [title, setTitle] = useState('');
@@ -31,7 +38,14 @@ export default function HistoryManager() {
   const [order, setOrder] = useState('');
   const [editId, setEditId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Record<string, string>>({});
+  const [deeplReady, setDeeplReady] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [targetLang, setTargetLang] = useState('en');
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const { enabledLangs } = useEnabledLanguages();
   const seeded = useRef(false);
+
+  useEffect(() => { isDeeplAvailable().then(setDeeplReady); }, []);
 
   useEffect(() => {
     return onSnapshot(
@@ -109,6 +123,78 @@ export default function HistoryManager() {
         <button type="submit" className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors">추가</button>
       </form>
 
+      {deeplReady && (
+        <div className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl px-4 py-3 border border-blue-100">
+          <Languages className="w-4 h-4 text-blue-500 shrink-0" />
+          <span className="text-xs font-medium text-slate-700 shrink-0">연혁 번역</span>
+          <span className="text-[10px] text-slate-400">title, description 번역</span>
+
+          {/* 타겟 언어 선택 */}
+          <div className="relative ml-auto shrink-0">
+            <button
+              onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+              disabled={translating}
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-lg hover:bg-white transition-colors disabled:opacity-40"
+            >
+              {(LANGUAGE_META[targetLang]?.deeplCode || targetLang).toUpperCase()}
+              <ChevronDown className="w-3 h-3" />
+            </button>
+            {langDropdownOpen && (
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden min-w-[140px] z-50">
+                {enabledLangs.map(code => (
+                  <button
+                    key={code}
+                    onClick={() => { setTargetLang(code); setLangDropdownOpen(false); }}
+                    className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${
+                      code === targetLang ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {code.toUpperCase()} {LANGUAGE_META[code]?.nativeName || code}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={async () => {
+              setTranslating(true);
+              try {
+                const suffix = `_${targetLang}`;
+                const toTranslate = items.filter(h => h.title && !(h as any)[`title${suffix}`]);
+                const targets = toTranslate.length > 0 ? toTranslate : items.filter(h => h.title);
+                if (targets.length === 0) { toast('번역할 항목이 없습니다.'); return; }
+
+                const titles = targets.map(h => h.title);
+                const descs = targets.map(h => h.description || '');
+                const hasDesc = descs.some(d => d.length > 0);
+
+                const translatedTitles = await translateTexts(titles, 'ko', targetLang);
+                const translatedDescs = hasDesc ? await translateTexts(descs, 'ko', targetLang) : descs.map(() => '');
+
+                for (let i = 0; i < targets.length; i++) {
+                  const updates: Record<string, string> = { [`title_${targetLang}`]: translatedTitles[i] };
+                  if (targets[i].description) updates[`description_${targetLang}`] = translatedDescs[i];
+                  await updateDoc(doc(db, 'history_items', targets[i].id), updates);
+                }
+                const langName = LANGUAGE_META[targetLang]?.nativeName || targetLang.toUpperCase();
+                toast(`연혁 ${langName} 번역이 완료되었습니다.`);
+              } catch (e) {
+                toast(e instanceof Error ? e.message : '번역 실패', 'error');
+              } finally {
+                setTranslating(false);
+              }
+            }}
+            disabled={translating}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors shrink-0"
+          >
+            {translating ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> 번역 중...</>
+            ) : '일괄 번역'}
+          </button>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100">
           <h3 className="font-bold text-sm text-slate-900">연혁 목록 ({items.length})</h3>
@@ -139,6 +225,7 @@ export default function HistoryManager() {
                         <span className="text-amber-600 font-bold">{h.year}</span> — {h.title}
                       </p>
                       {h.description && <p className="text-xs text-slate-400 mt-0.5">{h.description}</p>}
+                      {h.title_en && <p className="text-xs text-blue-400 mt-0.5">EN: {h.title_en}{h.description_en ? ` — ${h.description_en}` : ''}</p>}
                     </div>
                     <div className="flex items-center gap-1">
                       <button onClick={() => startEdit(h)} className="p-2 text-slate-400 hover:text-amber-600"><Edit2 className="w-4 h-4" /></button>

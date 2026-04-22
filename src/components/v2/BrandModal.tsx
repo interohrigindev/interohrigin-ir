@@ -87,7 +87,7 @@ export default function BrandModal({ brand, onClose }: Props) {
 
           <div className="mt-8 pt-6 border-t border-slate-100">
             <p className="text-[10px] font-bold tracking-widest uppercase text-slate-400 mb-4">
-              {lang === 'en' ? 'Visit Links' : '사이트 바로가기'}
+              {lang !== 'ko' ? 'Visit Links' : '사이트 바로가기'}
             </p>
             <div className="flex flex-col gap-3">
               {brand.links.website && (
@@ -98,7 +98,7 @@ export default function BrandModal({ brand, onClose }: Props) {
                   className="group flex items-center gap-3 px-5 py-3.5 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-700 transition-colors"
                 >
                   <ExternalLink className="w-4 h-4 shrink-0" />
-                  <span>{lang === 'en' ? 'Official Website' : '공식 홈페이지'}</span>
+                  <span>{lang !== 'ko' ? 'Official Website' : '공식 홈페이지'}</span>
                   <span className="ml-auto text-white/40 group-hover:text-white/70 text-xs transition-colors">↗</span>
                 </a>
               )}
@@ -110,7 +110,7 @@ export default function BrandModal({ brand, onClose }: Props) {
                   className="group flex items-center gap-3 px-5 py-3.5 rounded-xl bg-[#03C75A] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
                 >
                   <ShoppingBag className="w-4 h-4 shrink-0" />
-                  <span>{lang === 'en' ? 'Naver Smartstore' : '네이버 스마트스토어'}</span>
+                  <span>{lang !== 'ko' ? 'Naver Smartstore' : '네이버 스마트스토어'}</span>
                   <span className="ml-auto text-white/60 group-hover:text-white text-xs transition-colors">↗</span>
                 </a>
               )}
@@ -128,7 +128,7 @@ export default function BrandModal({ brand, onClose }: Props) {
               )}
               {!brand.links.website && !brand.links.smartstore && !brand.links.instagram && (
                 <p className="text-sm text-slate-400 text-center py-2">
-                  {lang === 'en' ? 'Links coming soon.' : '링크 준비 중입니다.'}
+                  {lang !== 'ko' ? 'Links coming soon.' : '링크 준비 중입니다.'}
                 </p>
               )}
             </div>

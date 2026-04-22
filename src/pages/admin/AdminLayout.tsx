@@ -6,7 +6,7 @@ import {
   FileText,
   Tag,
   Video,
-  // Briefcase,
+  Briefcase,
   Clock,
   MessageSquare,
   Settings,
@@ -27,8 +27,8 @@ const pageLinks = [
 
 const dataLinks = [
   { to: '/admin/brands', label: '브랜드 관리', icon: Tag },
+  { to: '/admin/portfolio', label: '포트폴리오 관리', icon: Briefcase },
   { to: '/admin/videos', label: '영상 관리', icon: Video },
-  // { to: '/admin/services', label: '서비스 관리', icon: Briefcase }, // Business 페이지와 중복
   { to: '/admin/history', label: '연혁 관리', icon: Clock },
   { to: '/admin/inquiries', label: '문의 내역', icon: MessageSquare },
 ];

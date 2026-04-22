@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useLang } from '../contexts/LanguageContext';
+import { LANGUAGE_META } from '../lib/languages';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -22,12 +23,32 @@ const baseLinks = [
   { path: '/contact', label: 'Contact', end: false },
 ];
 
+/** 언어 표시 레이블 */
+function langLabel(code: string): string {
+  if (code === 'ko') return 'KO';
+  return LANGUAGE_META[code]?.deeplCode || code.toUpperCase();
+}
+function langFullName(code: string): string {
+  if (code === 'ko') return '한국어';
+  return LANGUAGE_META[code]?.nativeName || code.toUpperCase();
+}
+
 export default function UnifiedLayout() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { lang, prefix, switchPath } = useLang();
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const { lang, prefix, switchPath, enabledLangs } = useLang();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const allLangs = ['ko', ...enabledLangs];
+
+  const switchToLang = (targetLang: string) => {
+    const newPath = switchPath(targetLang, location.pathname);
+    navigate(newPath);
+    setLangDropdownOpen(false);
+    setOpen(false);
+  };
 
   // 언어 prefix가 적용된 링크 목록
   const links = baseLinks.map(l => ({
@@ -35,12 +56,6 @@ export default function UnifiedLayout() {
     label: l.label,
     end: l.end,
   }));
-
-  const toggleLang = () => {
-    const targetLang = lang === 'ko' ? 'en' : 'ko';
-    const newPath = switchPath(targetLang, location.pathname);
-    navigate(newPath);
-  };
 
   const homePath = prefix || '/';
   const isHome = location.pathname === homePath || location.pathname === `${homePath}/`;
@@ -84,6 +99,17 @@ export default function UnifiedLayout() {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [open]);
+
+  // 드롭다운 외부 클릭 닫기
+  useEffect(() => {
+    if (!langDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.lang-dropdown')) setLangDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [langDropdownOpen]);
 
   const desktopLinkCls = (active: boolean) =>
     `px-3.5 py-1.5 rounded-xl text-[13px] font-medium transition-all duration-300 ease-in-out ${
@@ -139,16 +165,38 @@ export default function UnifiedLayout() {
                   {l.label}
                 </NavLink>
               ))}
-              <button
-                onClick={toggleLang}
-                className={`ml-2 px-2.5 py-1 rounded-lg text-[11px] font-bold tracking-wider transition-all duration-300 border ${
-                  scrolled
-                    ? 'border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-400'
-                    : 'border-white/20 text-white/70 hover:text-white hover:border-white/50'
-                }`}
-              >
-                {lang === 'ko' ? 'EN' : 'KO'}
-              </button>
+
+              {/* 언어 드롭다운 */}
+              <div className="relative ml-2 lang-dropdown">
+                <button
+                  onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold tracking-wider transition-all duration-300 border ${
+                    scrolled
+                      ? 'border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-400'
+                      : 'border-white/20 text-white/70 hover:text-white hover:border-white/50'
+                  }`}
+                >
+                  {langLabel(lang)}
+                  <ChevronDown className={`w-3 h-3 transition-transform ${langDropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {langDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1.5 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden min-w-[120px] z-50">
+                    {allLangs.map(code => (
+                      <button
+                        key={code}
+                        onClick={() => switchToLang(code)}
+                        className={`w-full text-left px-4 py-2 text-xs font-medium transition-colors ${
+                          code === lang
+                            ? 'bg-brand-50 text-brand-700'
+                            : 'text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        {langLabel(code)} <span className="text-slate-400 ml-1">{langFullName(code)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </nav>
 
             {/* 모바일 햄버거 */}
@@ -194,10 +242,9 @@ export default function UnifiedLayout() {
             </NavLink>
           ))}
 
-          {/* Language toggle in overlay */}
-          <button
-            onClick={() => { toggleLang(); setOpen(false); }}
-            className="mt-6 px-5 py-2 rounded-xl border border-white/20 text-sm font-bold text-white/70 hover:text-white hover:border-white/50 transition-colors"
+          {/* Language buttons in overlay */}
+          <div
+            className="mt-6 flex flex-wrap items-center justify-center gap-2"
             style={{
               transitionDelay: open ? `${links.length * 60}ms` : '0ms',
               transform: open ? 'translateY(0)' : 'translateY(20px)',
@@ -205,8 +252,20 @@ export default function UnifiedLayout() {
               transition: 'all 0.3s ease',
             }}
           >
-            {lang === 'ko' ? 'English' : '한국어'}
-          </button>
+            {allLangs.map(code => (
+              <button
+                key={code}
+                onClick={() => switchToLang(code)}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
+                  code === lang
+                    ? 'bg-gold-400 text-slate-900'
+                    : 'border border-white/20 text-white/70 hover:text-white hover:border-white/50'
+                }`}
+              >
+                {langFullName(code)}
+              </button>
+            ))}
+          </div>
 
           {/* SNS in overlay */}
           <div
@@ -249,6 +308,28 @@ export default function UnifiedLayout() {
   );
 }
 
+/* ── UI Strings ── */
+const UI_STRINGS: Record<string, Record<string, string>> = {
+  footerDescription: {
+    ko: '글로벌 뷰티 마켓을 리드하는 토탈 커머스 기업. 20년 이상의 마케팅 역량과 유통 네트워크로 브랜드 가치를 극대화합니다.',
+    en: 'A total commerce group leading the global beauty market. We maximize brand value with 20+ years of marketing expertise and distribution networks.',
+    ja: 'グローバルビューティーマーケットをリードするトータルコマース企業。20年以上のマーケティング力と流通ネットワークでブランド価値を最大化します。',
+    zh: '引领全球美妆市场的综合商务集团。凭借20多年的营销能力和分销网络，最大化品牌价值。',
+  },
+  footerAddress: {
+    ko: '서울특별시 강남구 선릉로121길 5, 3층\n(논현동, 인터오리진타워)',
+    en: '3F, 5 Seolleung-ro 121-gil, Gangnam-gu\nSeoul, South Korea',
+    ja: '韓国ソウル市江南区宣陵路121ギル5、3階\n（論峴洞、インターオリジンタワー）',
+    zh: '韩国首尔市江南区宣陵路121街5号3层\n（论岘洞，INTEROHRIGIN大厦）',
+  },
+};
+
+function getUIString(key: string, lang: string): string {
+  const map = UI_STRINGS[key];
+  if (!map) return '';
+  return map[lang] || map.en || map.ko || '';
+}
+
 /* ── Footer ── */
 function Footer() {
   const { lang, prefix } = useLang();
@@ -256,6 +337,10 @@ function Footer() {
     to: l.path === '/' ? (prefix || '/') : `${prefix}${l.path}`,
     label: l.label,
   }));
+
+  const addressText = getUIString('footerAddress', lang);
+  const descText = getUIString('footerDescription', lang);
+
   return (
     <footer className="bg-slate-900 text-slate-400 text-sm">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 md:py-16 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-10">
@@ -265,9 +350,7 @@ function Footer() {
             <img src="/logos/interohrigin-inc.png" alt="INTEROHRIGIN I&C" className="h-5 w-auto brightness-0 invert" loading="lazy" />
           </div>
           <p className="leading-relaxed text-slate-500 text-xs md:text-sm">
-            {lang === 'en'
-              ? 'A total commerce group leading the global beauty market. We maximize brand value with 20+ years of marketing expertise and distribution networks.'
-              : '글로벌 뷰티 마켓을 리드하는 토탈 커머스 기업. 20년 이상의 마케팅 역량과 유통 네트워크로 브랜드 가치를 극대화합니다.'}
+            {descText}
           </p>
           <div className="flex items-center gap-2 mt-5 flex-wrap">
             {sns.map(s => (
@@ -311,11 +394,10 @@ function Footer() {
         <div className="footer-col">
           <p className="text-white font-semibold mb-3 text-xs md:text-sm">Contact</p>
           <p className="text-slate-500 leading-relaxed text-xs md:text-sm">
-            {lang === 'en' ? (
-              <>3F, 5 Seolleung-ro 121-gil, Gangnam-gu<br />Seoul, South Korea<br />Tel. 070-4188-0322<br />biz@interohrigin.com</>
-            ) : (
-              <>서울특별시 강남구 선릉로121길 5, 3층<br />(논현동, 인터오리진타워)<br />Tel. 070-4188-0322<br />biz@interohrigin.com</>
-            )}
+            {addressText.split('\n').map((line, i) => (
+              <span key={i}>{i > 0 && <br />}{line}</span>
+            ))}
+            <br />Tel. 070-4188-0322<br />biz@interohrigin.com
           </p>
         </div>
       </div>

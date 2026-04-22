@@ -3,46 +3,44 @@ import { useToast } from '../../components/admin/Toast';
 import ImageUploader from '../../components/admin/ImageUploader';
 import AiAssistButton from '../../components/admin/AiAssistButton';
 import { useBrands, type SharedBrand } from '../../hooks/useBrands';
-import { translateText, isGeminiAvailable } from '../../lib/gemini';
-import { Plus, Trash2, Edit2, Check, X, ChevronUp, Eye, EyeOff, Home, LayoutGrid, GripVertical, Languages, Loader2 } from 'lucide-react';
+import { translateText, isDeeplAvailable } from '../../lib/deepl';
+import { useEnabledLanguages } from '../../hooks/useEnabledLanguages';
+import { LANGUAGE_META } from '../../lib/languages';
+import { Plus, Trash2, Edit2, Check, X, ChevronUp, Eye, EyeOff, Home, LayoutGrid, GripVertical, Languages, Loader2, ChevronDown } from 'lucide-react';
 
-/* ── 브랜드 일괄 영문 번역 ── */
+/* ── 브랜드 다국어 번역 ── */
 function BrandTranslateAll({ brands, updateBrand }: { brands: SharedBrand[]; updateBrand: (id: string, data: Partial<Omit<SharedBrand, 'id'>>) => Promise<void> }) {
   const { toast } = useToast();
   const [translating, setTranslating] = useState(false);
   const [available, setAvailable] = useState(false);
   const [done, setDone] = useState(false);
+  const [targetLang, setTargetLang] = useState('en');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const { enabledLangs } = useEnabledLanguages();
 
-  useState(() => { isGeminiAvailable().then(setAvailable); });
+  useState(() => { isDeeplAvailable().then(setAvailable); });
 
   if (!available) return null;
 
-  const handleTranslate = async () => {
+  const handleTranslate = async (lang?: string) => {
+    const toLang = lang || targetLang;
     setTranslating(true);
     setDone(false);
     try {
-      const needTranslation = brands.filter(b => b.description && !b.description_en);
-      if (needTranslation.length === 0) {
-        // 전체 강제 번역
-        for (const b of brands) {
-          if (!b.description && !b.detail) continue;
-          const updates: Partial<Omit<SharedBrand, 'id'>> = {};
-          if (b.description) updates.description_en = await translateText(b.description, 'ko', 'en');
-          if (b.detail) updates.detail_en = await translateText(b.detail, 'ko', 'en');
-          if (b.category) updates.category_en = await translateText(b.category, 'ko', 'en');
-          await updateBrand(b.id, updates);
-        }
-      } else {
-        for (const b of needTranslation) {
-          const updates: Partial<Omit<SharedBrand, 'id'>> = {};
-          if (b.description) updates.description_en = await translateText(b.description, 'ko', 'en');
-          if (b.detail) updates.detail_en = await translateText(b.detail, 'ko', 'en');
-          if (b.category) updates.category_en = await translateText(b.category, 'ko', 'en');
-          await updateBrand(b.id, updates);
-        }
+      const suffix = `_${toLang}`;
+      const needTranslation = brands.filter(b => b.description && !(b as any)[`description${suffix}`]);
+      const targets = needTranslation.length > 0 ? needTranslation : brands.filter(b => b.description || b.detail);
+
+      for (const b of targets) {
+        const updates: Record<string, string> = {};
+        if (b.description) updates[`description_${toLang}`] = await translateText(b.description, 'ko', toLang);
+        if (b.detail) updates[`detail_${toLang}`] = await translateText(b.detail, 'ko', toLang);
+        if (b.category) updates[`category_${toLang}`] = await translateText(b.category, 'ko', toLang);
+        await updateBrand(b.id, updates as any);
       }
       setDone(true);
-      toast('브랜드 영문 번역이 완료되었습니다.');
+      const langName = LANGUAGE_META[toLang]?.nativeName || toLang.toUpperCase();
+      toast(`브랜드 ${langName} 번역이 완료되었습니다.`);
     } catch (e) {
       toast(e instanceof Error ? e.message : '번역 실패', 'error');
     } finally {
@@ -53,12 +51,40 @@ function BrandTranslateAll({ brands, updateBrand }: { brands: SharedBrand[]; upd
   return (
     <div className="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl px-4 py-3 border border-blue-100">
       <Languages className="w-4 h-4 text-blue-500 shrink-0" />
-      <span className="text-xs font-medium text-slate-700 shrink-0">브랜드 영문 번역</span>
-      <span className="text-[10px] text-slate-400">description, detail, category를 영어로 번역</span>
+      <span className="text-xs font-medium text-slate-700 shrink-0">브랜드 번역</span>
+      <span className="text-[10px] text-slate-400">description, detail, category 번역</span>
+
+      {/* 타겟 언어 선택 */}
+      <div className="relative ml-auto shrink-0">
+        <button
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          disabled={translating}
+          className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-lg hover:bg-white transition-colors disabled:opacity-40"
+        >
+          {(LANGUAGE_META[targetLang]?.deeplCode || targetLang).toUpperCase()}
+          <ChevronDown className="w-3 h-3" />
+        </button>
+        {dropdownOpen && (
+          <div className="absolute right-0 top-full mt-1 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden min-w-[140px] z-50">
+            {enabledLangs.map(code => (
+              <button
+                key={code}
+                onClick={() => { setTargetLang(code); setDropdownOpen(false); }}
+                className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${
+                  code === targetLang ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {code.toUpperCase()} {LANGUAGE_META[code]?.nativeName || code}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <button
-        onClick={handleTranslate}
+        onClick={() => handleTranslate()}
         disabled={translating}
-        className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors shrink-0"
+        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 disabled:opacity-40 transition-colors shrink-0"
       >
         {translating ? (
           <><Loader2 className="w-3.5 h-3.5 animate-spin" /> 번역 중...</>

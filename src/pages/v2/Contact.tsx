@@ -37,7 +37,7 @@ export default function Contact() {
       setForm({ name: '', email: '', company: '', type: inquiryTypes[0], message: '' });
     } catch (err) {
       console.error(err);
-      alert(lang === 'en' ? 'Failed to send. Please try again.' : '전송에 실패했습니다. 다시 시도해 주세요.');
+      alert(lang !== 'ko' ? 'Failed to send. Please try again.' : '전송에 실패했습니다. 다시 시도해 주세요.');
     } finally {
       setSending(false);
     }
@@ -80,16 +80,16 @@ export default function Contact() {
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <CheckCircle className="w-16 h-16 text-emerald-500 mb-6" />
                 <h3 className="text-2xl font-bold text-slate-900">
-                  {lang === 'en' ? 'Your inquiry has been submitted' : '문의가 접수되었습니다'}
+                  {lang !== 'ko' ? 'Your inquiry has been submitted' : '문의가 접수되었습니다'}
                 </h3>
                 <p className="mt-3 text-slate-500">
-                  {lang === 'en' ? 'We will get back to you shortly.' : '빠른 시일 내에 답변드리겠습니다.'}
+                  {lang !== 'ko' ? 'We will get back to you shortly.' : '빠른 시일 내에 답변드리겠습니다.'}
                 </p>
                 <button
                   onClick={() => setSent(false)}
                   className="mt-8 px-6 py-3 bg-slate-900 text-white text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors"
                 >
-                  {lang === 'en' ? 'New Inquiry' : '새 문의 작성'}
+                  {lang !== 'ko' ? 'New Inquiry' : '새 문의 작성'}
                 </button>
               </div>
             ) : (
@@ -97,7 +97,7 @@ export default function Contact() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Name *</label>
-                    <input className={inputCls} value={form.name} onChange={set('name')} required placeholder={lang === 'en' ? 'John Doe' : '홍길동'} />
+                    <input className={inputCls} value={form.name} onChange={set('name')} required placeholder={lang !== 'ko' ? 'John Doe' : '홍길동'} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Email *</label>
@@ -107,7 +107,7 @@ export default function Contact() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Company</label>
-                    <input className={inputCls} value={form.company} onChange={set('company')} placeholder={lang === 'en' ? 'Company Name' : '회사명'} />
+                    <input className={inputCls} value={form.company} onChange={set('company')} placeholder={lang !== 'ko' ? 'Company Name' : '회사명'} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">Inquiry Type</label>
@@ -118,7 +118,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">Message *</label>
-                  <textarea className={`${inputCls} resize-none`} rows={6} value={form.message} onChange={set('message')} required placeholder={lang === 'en' ? 'Please enter your message' : '문의 내용을 입력해 주세요'} />
+                  <textarea className={`${inputCls} resize-none`} rows={6} value={form.message} onChange={set('message')} required placeholder={lang !== 'ko' ? 'Please enter your message' : '문의 내용을 입력해 주세요'} />
                 </div>
                 <button
                   type="submit"
@@ -126,7 +126,7 @@ export default function Contact() {
                   className="inline-flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 disabled:opacity-50 transition-colors"
                 >
                   <Send className="w-4 h-4" />
-                  {sending ? (lang === 'en' ? 'Sending...' : '전송 중...') : 'Send Message'}
+                  {sending ? (lang !== 'ko' ? 'Sending...' : '전송 중...') : 'Send Message'}
                 </button>
               </form>
             )}

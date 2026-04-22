@@ -1,10 +1,11 @@
-import { useRef, useLayoutEffect } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { useRef, useLayoutEffect, useState } from 'react';
+import { ArrowRight, Briefcase } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { usePageContent } from '../../hooks/usePageContent';
 import { useLang } from '../../contexts/LanguageContext';
+import PortfolioModal from '../../components/v2/PortfolioModal';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -121,6 +122,7 @@ export default function Business() {
   const { lang } = useLang();
   const { data: content } = usePageContent('business', pageFallback, lang);
   const pinRef = useRef<HTMLDivElement>(null);
+  const [showPortfolio, setShowPortfolio] = useState(false);
 
   /* ── GSAP: 데스크톱 핀 애니메이션 (WishCompany 스타일) ── */
   useLayoutEffect(() => {
@@ -140,11 +142,13 @@ export default function Business() {
         const dim = item.querySelector('.biz-dim');
 
         if (i === 0) {
+          gsap.set(item, { pointerEvents: 'auto' });
           gsap.set(thumb, { opacity: 1 });
           gsap.set(txtBox, { opacity: 1, y: 0 });
           gsap.set(dim, { opacity: 1 });
           gsap.set(desc, { opacity: 1 });
         } else {
+          gsap.set(item, { pointerEvents: 'none' });
           gsap.set(thumb, { opacity: 0 });
           gsap.set(txtBox, { opacity: 0, y: '40%' });
           gsap.set(dim, { opacity: 0 });
@@ -168,11 +172,13 @@ export default function Business() {
         const next = items[i + 1];
         const pos = i * 3;
 
-        // 현재 아이템 fade out
+        // 현재 아이템 fade out + 클릭 차단
         tl.to(cur.querySelector('.biz-desc')!, { opacity: 0, duration: 0.8 }, pos + 1.5);
         tl.to(cur.querySelector('.biz-thumb')!, { opacity: 0, duration: 1 }, pos + 2);
+        tl.set(cur, { pointerEvents: 'none' }, pos + 2);
 
-        // 다음 아이템 fade in
+        // 다음 아이템 fade in + 클릭 활성화
+        tl.set(next, { pointerEvents: 'auto' }, pos + 2.2);
         tl.to(next.querySelector('.biz-thumb')!, { opacity: 1, duration: 1 }, pos + 2.2);
         tl.to(next.querySelector('.biz-dim')!, { opacity: 1, duration: 0.8 }, pos + 2.5);
         tl.to(next.querySelector('.biz-txtbox')!, { opacity: 1, y: 0, duration: 1 }, pos + 2.5);
@@ -241,7 +247,7 @@ export default function Business() {
                       {area.title}
                     </h3>
                     <p className="mt-2 text-sm text-white/60 font-medium tracking-wide">
-                      {lang === 'en' ? area.subtitle_en : area.subtitle}
+                      {lang !== 'ko' ? area.subtitle_en : area.subtitle}
                     </p>
                   </div>
                 </div>
@@ -253,7 +259,7 @@ export default function Business() {
                     {area.title}
                   </h4>
                   <p className="mt-4 text-slate-500 leading-relaxed text-sm lg:text-base max-w-md">
-                    {lang === 'en' ? area.description_en : area.description}
+                    {lang !== 'ko' ? area.description_en : area.description}
                   </p>
 
                   {/* 기능 리스트 */}
@@ -261,14 +267,14 @@ export default function Business() {
                     {area.features.map((f, fi) => (
                       <li key={fi} className="flex items-start gap-3 text-sm text-slate-600">
                         <span className={`mt-1.5 w-1.5 h-1.5 rounded-full ${area.accent} flex-shrink-0`} />
-                        {lang === 'en' ? f.text_en : f.text}
+                        {lang !== 'ko' ? f.text_en : f.text}
                       </li>
                     ))}
                   </ul>
 
                   {/* 태그 */}
                   <div className="mt-8 flex flex-wrap gap-2">
-                    {(lang === 'en' ? area.tags_en : area.tags).map(tag => (
+                    {(lang !== 'ko' ? area.tags_en : area.tags).map(tag => (
                       <span
                         key={tag}
                         className="px-3 py-1 text-xs font-medium text-slate-500 bg-slate-100 rounded-full"
@@ -277,6 +283,17 @@ export default function Business() {
                       </span>
                     ))}
                   </div>
+
+                  {/* 포트폴리오 버튼 — 02 Advertising & PPL 전용 */}
+                  {area.number === '02' && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowPortfolio(true); }}
+                      className="mt-6 self-start inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-brand-500 text-white text-xs font-bold rounded-xl hover:bg-brand-600 transition-colors"
+                    >
+                      <Briefcase className="w-3.5 h-3.5" />
+                      {lang !== 'ko' ? 'Portfolio' : '포트폴리오'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -301,14 +318,14 @@ export default function Business() {
                     <span className="text-3xl font-black text-white/20 leading-none">{area.number}</span>
                     <h3 className="text-xl font-bold text-white mt-1">{area.title}</h3>
                     <p className="text-xs text-white/60 mt-0.5">
-                      {lang === 'en' ? area.subtitle_en : area.subtitle}
+                      {lang !== 'ko' ? area.subtitle_en : area.subtitle}
                     </p>
                   </div>
                 </div>
 
                 {/* 설명 */}
                 <p className="text-sm text-slate-500 leading-relaxed">
-                  {lang === 'en' ? area.description_en : area.description}
+                  {lang !== 'ko' ? area.description_en : area.description}
                 </p>
 
                 {/* 기능 */}
@@ -316,19 +333,30 @@ export default function Business() {
                   {area.features.map((f, fi) => (
                     <li key={fi} className="flex items-start gap-2.5 text-sm text-slate-600">
                       <span className={`mt-1.5 w-1.5 h-1.5 rounded-full ${area.accent} flex-shrink-0`} />
-                      {lang === 'en' ? f.text_en : f.text}
+                      {lang !== 'ko' ? f.text_en : f.text}
                     </li>
                   ))}
                 </ul>
 
                 {/* 태그 */}
                 <div className="flex flex-wrap gap-1.5">
-                  {(lang === 'en' ? area.tags_en : area.tags).map(tag => (
+                  {(lang !== 'ko' ? area.tags_en : area.tags).map(tag => (
                     <span key={tag} className="px-2.5 py-0.5 text-[10px] font-medium text-slate-400 bg-slate-100 rounded-full">
                       {tag}
                     </span>
                   ))}
                 </div>
+
+                {/* 포트폴리오 버튼 — 02 Advertising & PPL 전용 (모바일) */}
+                {area.number === '02' && (
+                  <button
+                    onClick={() => setShowPortfolio(true)}
+                    className="mt-4 self-start inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-brand-500 text-white text-xs font-bold rounded-xl hover:bg-brand-600 transition-colors"
+                  >
+                    <Briefcase className="w-3.5 h-3.5" />
+                    {lang !== 'ko' ? 'Portfolio' : '포트폴리오'}
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -352,6 +380,9 @@ export default function Business() {
           </Link>
         </div>
       </section>
+
+      {/* Portfolio Modal */}
+      {showPortfolio && <PortfolioModal onClose={() => setShowPortfolio(false)} />}
     </>
   );
 }

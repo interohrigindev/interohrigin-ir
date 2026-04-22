@@ -62,8 +62,8 @@ const services: Service[] = [
 function ServiceCard({ s, index, lang }: { s: Service; index: number; lang: string }) {
   const [flipped, setFlipped] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const desc = lang === 'en' ? s.description_en : s.description;
-  const detailLabel = lang === 'en' ? 'Learn More' : '자세히 보기';
+  const desc = lang !== 'ko' ? s.description_en : s.description;
+  const detailLabel = lang !== 'ko' ? 'Learn More' : '자세히 보기';
 
   const toggle = useCallback(() => {
     // 768px 기준 모바일 판별 (md breakpoint)

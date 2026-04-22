@@ -13,14 +13,13 @@ import VideoGallery from '../../components/v2/VideoGallery';
 import { usePageContent } from '../../hooks/usePageContent';
 import { useBrands } from '../../hooks/useBrands';
 import { useLang } from '../../contexts/LanguageContext';
+import { getLocalizedField } from '../../lib/languages';
 
 const fallback = {
   hero: {
-    images: [
-      'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1920&h=1080&fit=crop&q=85',
-      'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1920&h=1080&fit=crop&q=85',
-      'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=1920&h=1080&fit=crop&q=85',
-    ],
+    // Firestore 로드 전 플래시 방지를 위해 빈 배열 유지.
+    // 로드 전에는 section의 bg-brand-900(다크톤)만 노출되고, Firestore 데이터 도착 시 실제 이미지가 렌더됩니다.
+    images: [] as string[],
     label: 'Global Beauty Commerce Group',
     title: 'Connecting Korean',
     titleHighlight: 'Beauty',
@@ -75,11 +74,11 @@ export default function Home() {
   const { lang } = useLang();
   const { data: content } = usePageContent('home', fallback, lang);
   const { brands } = useBrands();
-  const homeBrands = brands.filter(b => b.visibleHome).map(b => lang === 'en' ? {
+  const homeBrands = brands.filter(b => b.visibleHome).map(b => lang === 'ko' ? b : {
     ...b,
-    description: b.description_en || b.description,
-    category: b.category_en || b.category,
-  } : b);
+    description: getLocalizedField(b as any, 'description', lang),
+    category: getLocalizedField(b as any, 'category', lang),
+  });
   const heroRef = useRef<HTMLDivElement>(null);
   const bgIdx = useRef(0);
 
@@ -119,6 +118,20 @@ export default function Home() {
 
   /* 배경 이미지 크로스페이드 */
   const heroImages = content.hero.images;
+
+  /* 첫 히어로 이미지 동적 preload — URL이 바뀌어도 자동으로 갱신됨 */
+  useEffect(() => {
+    const first = heroImages?.[0];
+    if (!first) return;
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = first;
+    (link as any).fetchPriority = 'high';
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, [heroImages]);
+
   useEffect(() => {
     const layers = heroRef.current?.querySelectorAll<HTMLImageElement>('.hero-bg-img');
     if (!layers || layers.length === 0) return;
@@ -151,7 +164,7 @@ export default function Home() {
       <SectionDots sections={homeSections} />
 
       {/* ── Fullscreen Hero ── */}
-      <section id="hero" ref={heroRef} className="relative h-screen min-h-[500px] md:min-h-[600px] flex items-center justify-center overflow-hidden -mt-16">
+      <section id="hero" ref={heroRef} className="relative h-screen min-h-[500px] md:min-h-[600px] flex items-center justify-center overflow-hidden -mt-16 bg-brand-900">
         {/* 배경 이미지 레이어 */}
         {heroImages.map((src, i) => (
           <img
@@ -286,7 +299,7 @@ export default function Home() {
                 PR Videos
               </h2>
               <p className="mt-1.5 md:mt-2 text-slate-400 text-xs md:text-sm">
-                {lang === 'en' ? 'Brand promotional videos — click to play' : '브랜드별 홍보 영상 — 클릭하여 재생'}
+                {lang !== 'ko' ? 'Brand promotional videos — click to play' : '브랜드별 홍보 영상 — 클릭하여 재생'}
               </p>
             </div>
             <p className="text-slate-600 text-xs tracking-widest uppercase hidden md:block">Scroll →</p>

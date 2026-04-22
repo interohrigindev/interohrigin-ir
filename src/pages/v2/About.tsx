@@ -6,12 +6,15 @@ import SectionHeader from '../../components/v2/SectionHeader';
 import TimelineItem from '../../components/v2/TimelineItem';
 import { usePageContent } from '../../hooks/usePageContent';
 import { useLang } from '../../contexts/LanguageContext';
+import { getLocalizedField } from '../../lib/languages';
 
 interface HistoryItem {
   id: string;
   year: string;
   title: string;
   description?: string;
+  title_en?: string;
+  description_en?: string;
   order: number;
 }
 
@@ -147,7 +150,7 @@ export default function About() {
       {/* Core Values */}
       <section className="bg-white py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <SectionHeader label="Core Values" title={lang === 'en' ? 'Core Values' : '핵심 가치'} />
+          <SectionHeader label="Core Values" title={lang !== 'ko' ? 'Core Values' : '핵심 가치'} />
           <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             {content.values.map((v, i) => {
               const Icon = defaultIcons[i % defaultIcons.length];
@@ -187,8 +190,8 @@ export default function About() {
               <TimelineItem
                 key={h.id}
                 year={h.year}
-                title={h.title}
-                description={h.description}
+                title={getLocalizedField(h as any, 'title', lang)}
+                description={getLocalizedField(h as any, 'description', lang)}
                 isLast={i === history.length - 1}
                 dark
               />

@@ -2,6 +2,25 @@ import { useEffect, useState } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
+const CACHE_PREFIX = 'pageContent:v1:';
+
+function readCache<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(key: string, data: unknown): void {
+  try {
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(data));
+  } catch {
+    /* quota exceeded or storage disabled — 캐시 실패는 무시 */
+  }
+}
+
 /**
  * fallback 기본값 위에 Firestore 데이터를 얕은 deep merge.
  * Firestore에 없는 키는 fallback 값으로 유지됩니다.
@@ -51,18 +70,25 @@ export function usePageContent<T extends Record<string, unknown>>(
   fallback: T,
   lang: string = 'ko',
 ): { data: T; loading: boolean; error: string | null } {
-  const [data, setData] = useState<T>(fallback);
+  const docId = lang === 'ko' ? pageId : `${pageId}_${lang}`;
+
+  // 초기 state: localStorage 캐시 → fallback 순. 재방문자는 첫 렌더부터 실제 이미지 URL을 가짐.
+  const [data, setData] = useState<T>(() => {
+    const cached = readCache<Record<string, unknown>>(docId);
+    return cached ? mergeWithFallback(cached, fallback) : fallback;
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const docId = lang === 'ko' ? pageId : `${pageId}_${lang}`;
     const ref = doc(db, 'pages', docId);
     const unsub = onSnapshot(
       ref,
       (snap) => {
         if (snap.exists()) {
-          setData(mergeWithFallback(snap.data(), fallback));
+          const fsData = snap.data();
+          setData(mergeWithFallback(fsData, fallback));
+          writeCache(docId, fsData);
         } else {
           setData(fallback);
         }
@@ -78,7 +104,7 @@ export function usePageContent<T extends Record<string, unknown>>(
     return unsub;
     // fallback is static default — no need in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageId, lang]);
+  }, [docId]);
 
   return { data, loading, error };
 }

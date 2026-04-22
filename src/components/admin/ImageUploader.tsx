@@ -1,6 +1,10 @@
 import { useState, useRef, type DragEvent } from 'react';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Info } from 'lucide-react';
 import { uploadImage } from '../../lib/storage';
+
+const MAX_SIZE_MB = 3;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+const GUIDE_TEXT = `권장: WebP/JPG, 가로 1920~2560px, ${MAX_SIZE_MB}MB 이하 (히어로는 1MB 내외가 이상적) · squoosh.app에서 변환`;
 
 interface Props {
   value: string;
@@ -8,21 +12,40 @@ interface Props {
   folder?: string;
   label?: string;
   className?: string;
+  /** 업로드 용량 한도(MB). 기본 3MB */
+  maxSizeMB?: number;
+  /** 안내 문구 노출 (기본 true) */
+  showGuide?: boolean;
 }
 
-export default function ImageUploader({ value, onChange, folder = 'uploads', label, className = '' }: Props) {
+export default function ImageUploader({
+  value, onChange, folder = 'uploads', label, className = '',
+  maxSizeMB = MAX_SIZE_MB, showGuide = true,
+}: Props) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) return;
+    setError(null);
+    if (!file.type.startsWith('image/')) {
+      setError('이미지 파일만 업로드 가능합니다.');
+      return;
+    }
+    const limit = maxSizeMB * 1024 * 1024;
+    if (file.size > limit) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      setError(`파일 용량이 너무 큽니다 (${mb}MB). ${maxSizeMB}MB 이하로 줄여주세요. squoosh.app에서 WebP로 변환하면 대부분 1MB 이하로 압축됩니다.`);
+      return;
+    }
     setUploading(true);
     try {
       const url = await uploadImage(file, folder);
       onChange(url);
     } catch (err) {
       console.error('Upload failed:', err);
+      setError('업로드에 실패했습니다. 네트워크 또는 파일 상태를 확인해주세요.');
     } finally {
       setUploading(false);
     }
@@ -79,6 +102,21 @@ export default function ImageUploader({ value, onChange, folder = 'uploads', lab
             </div>
           )}
         </div>
+      )}
+
+      {/* 가이드 문구 */}
+      {showGuide && (
+        <p className="mt-1.5 flex items-start gap-1 text-[11px] text-slate-500 leading-relaxed">
+          <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+          <span>{maxSizeMB === MAX_SIZE_MB ? GUIDE_TEXT : `권장: WebP/JPG, 가로 1920~2560px, ${maxSizeMB}MB 이하 · squoosh.app에서 변환`}</span>
+        </p>
+      )}
+
+      {/* 에러 메시지 */}
+      {error && (
+        <p className="mt-1.5 text-[11px] text-red-600 leading-relaxed">
+          {error}
+        </p>
       )}
 
       {/* URL 직접 입력 */}

@@ -4,6 +4,7 @@ import BrandModal, { type BrandData } from '../../components/v2/BrandModal';
 import { usePageContent } from '../../hooks/usePageContent';
 import { useBrands, type SharedBrand } from '../../hooks/useBrands';
 import { useLang } from '../../contexts/LanguageContext';
+import { getLocalizedField } from '../../lib/languages';
 
 const pageFallback = {
   hero: { image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=1920&h=900&fit=crop&q=85', label: 'Brand Portfolio', title: 'Our Brands', description: '프리미엄 스킨케어부터 더마 코스메틱, 유아용품, 주얼리까지\n7개 뷰티 브랜드가 글로벌 시장을 선도합니다' },
@@ -30,12 +31,12 @@ export default function Brands() {
   const { lang } = useLang();
   const { data: content } = usePageContent('brands', pageFallback, lang);
   const { brands: allBrands } = useBrands();
-  const brands = allBrands.filter(b => b.visibleBrands).map(b => lang === 'en' ? {
+  const brands = allBrands.filter(b => b.visibleBrands).map(b => lang === 'ko' ? b : {
     ...b,
-    description: b.description_en || b.description,
-    detail: b.detail_en || b.detail,
-    category: b.category_en || b.category,
-  } : b);
+    description: getLocalizedField(b as any, 'description', lang),
+    detail: getLocalizedField(b as any, 'detail', lang),
+    category: getLocalizedField(b as any, 'category', lang),
+  });
   const hero = { ...pageFallback.hero, ...(content.hero && typeof content.hero === 'object' && !Array.isArray(content.hero) ? content.hero : {}) };
   const philosophy = content.philosophy && typeof content.philosophy === 'object' && !Array.isArray(content.philosophy) && 'pillars' in content.philosophy
     ? { ...pageFallback.philosophy, ...content.philosophy }

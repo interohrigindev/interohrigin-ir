@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Sparkles, Languages, Wand2, FileText, Loader2, Check, X, RotateCcw } from 'lucide-react';
-import { translateText, generateCopy, improveText, isGeminiAvailable, SUPPORTED_LANGUAGES, type LangCode } from '../../lib/gemini';
+import { translateText, isDeeplAvailable } from '../../lib/deepl';
+import { generateCopy, improveText, isGeminiAvailable, SUPPORTED_LANGUAGES, type LangCode } from '../../lib/gemini';
 
 interface AiAssistButtonProps {
   value: string;
@@ -19,10 +20,15 @@ export default function AiAssistButton({ value, onApply, fieldLabel, context, co
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
   const [available, setAvailable] = useState(false);
+  const [deeplReady, setDeeplReady] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    isGeminiAvailable().then(setAvailable);
+    // 번역(DeepL) 또는 생성/개선(Gemini) 중 하나라도 있으면 버튼 표시
+    Promise.all([isDeeplAvailable(), isGeminiAvailable()]).then(([deepl, gemini]) => {
+      setDeeplReady(deepl);
+      setAvailable(deepl || gemini);
+    });
   }, []);
 
   useEffect(() => {
@@ -128,11 +134,11 @@ export default function AiAssistButton({ value, onApply, fieldLabel, context, co
           ) : !mode ? (
             /* Mode selection */
             <div className="p-3 space-y-1">
-              <button onClick={() => setMode('translate')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 text-left transition-colors">
+              <button onClick={() => setMode('translate')} disabled={!deeplReady} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 text-left transition-colors disabled:opacity-40">
                 <Languages className="w-4 h-4 text-blue-500" />
                 <div>
                   <p className="text-sm font-medium text-slate-900">번역</p>
-                  <p className="text-[10px] text-slate-400">다른 언어로 번역</p>
+                  <p className="text-[10px] text-slate-400">{deeplReady ? 'DeepL로 다른 언어로 번역' : 'DeepL API 키를 설정하세요'}</p>
                 </div>
               </button>
               <button onClick={() => setMode('generate')} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 text-left transition-colors">

@@ -132,7 +132,7 @@ export default function GlobalNetwork({ cities = defaultCities, lang = 'ko' }: P
             </div>
             <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">{hq?.label}</h3>
             <p className="text-xs md:text-sm text-slate-300 mt-0.5 font-medium">
-              {lang === 'en' && hq?.sub_en ? hq.sub_en : hq?.sub}
+              {lang !== 'ko' && hq?.sub_en ? hq.sub_en : hq?.sub}
             </p>
           </div>
 
@@ -244,7 +244,7 @@ export default function GlobalNetwork({ cities = defaultCities, lang = 'ko' }: P
                       active === city.id ? 'text-slate-200' : 'text-slate-400'
                     }`}
                   >
-                    {lang === 'en' && city.sub_en ? city.sub_en : city.sub}
+                    {lang !== 'ko' && city.sub_en ? city.sub_en : city.sub}
                   </p>
                 </div>
 

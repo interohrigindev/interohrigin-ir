@@ -3,8 +3,10 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useToast } from '../../components/admin/Toast';
 import ImageUploader from '../../components/admin/ImageUploader';
-import { Save, ChevronDown, ChevronUp, Eye, EyeOff, CheckCircle, XCircle, Sparkles } from 'lucide-react';
+import { Save, ChevronDown, ChevronUp, Eye, EyeOff, CheckCircle, XCircle, Sparkles, Languages, Globe, X as XIcon, Plus } from 'lucide-react';
 import { saveGeminiApiKey, getGeminiApiKey, testGeminiConnection } from '../../lib/gemini';
+import { saveDeeplApiKey, getDeeplApiKey, testDeeplConnection } from '../../lib/deepl';
+import { LANGUAGE_META, DEFAULT_ENABLED_LANGS } from '../../lib/languages';
 
 interface SiteSettingsData {
   company: { name: string; nameEn: string; ceo: string; businessNumber: string; address: string; phone: string; email: string };
@@ -180,6 +182,263 @@ function ApiKeySection() {
   );
 }
 
+/* ── DeepL API Key 관리 섹션 ── */
+function DeeplApiKeySection() {
+  const { toast } = useToast();
+  const [apiKey, setApiKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
+  const [hasKey, setHasKey] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<'success' | 'fail' | null>(null);
+  const [testError, setTestError] = useState('');
+  const [usageInfo, setUsageInfo] = useState('');
+
+  useEffect(() => {
+    getDeeplApiKey().then(key => {
+      if (key) {
+        setHasKey(true);
+        setApiKey(key);
+      }
+    });
+  }, []);
+
+  const saveKey = async () => {
+    if (!apiKey.trim()) return;
+    setSaving(true);
+    try {
+      await saveDeeplApiKey(apiKey.trim());
+      setHasKey(true);
+      toast('DeepL API 키가 저장되었습니다.');
+    } catch {
+      toast('저장 실패', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const testKey = async () => {
+    setTesting(true);
+    setTestResult(null);
+    setTestError('');
+    setUsageInfo('');
+    try {
+      const result = await testDeeplConnection(apiKey.trim());
+      if (result.success) {
+        setTestResult('success');
+        if (result.usage) {
+          const used = result.usage.character_count.toLocaleString();
+          const limit = result.usage.character_limit.toLocaleString();
+          setUsageInfo(`${used} / ${limit} 자`);
+        }
+        toast('DeepL API 연결 성공!');
+      } else {
+        setTestResult('fail');
+        setTestError(result.error || '알 수 없는 오류');
+        toast(`DeepL API 연결 실패: ${result.error}`, 'error');
+      }
+    } catch (e) {
+      setTestResult('fail');
+      const msg = e instanceof Error ? e.message : '알 수 없는 오류';
+      setTestError(msg);
+      toast(`DeepL API 연결 실패: ${msg}`, 'error');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const maskedKey = apiKey ? apiKey.slice(0, 8) + '•'.repeat(Math.max(0, apiKey.length - 12)) + apiKey.slice(-4) : '';
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-gradient-to-r from-sky-50 to-cyan-50 rounded-lg p-4 border border-sky-100">
+        <div className="flex items-start gap-3">
+          <Languages className="w-5 h-5 text-sky-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-slate-900">DeepL 번역 API</p>
+            <p className="text-xs text-slate-500 mt-0.5">고품질 AI 번역에 사용됩니다. (영문 번역, 다국어 번역)</p>
+            <p className="text-xs text-slate-400 mt-1">
+              API 키 발급: <a href="https://www.deepl.com/pro-api" target="_blank" rel="noopener noreferrer" className="text-sky-500 underline">DeepL API</a>
+              <span className="ml-2 text-slate-300">|</span>
+              <span className="ml-2">Free 플랜: 월 50만 자 무료</span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label className={labelCls}>DeepL API Key</label>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              className={inputCls}
+              type={showKey ? 'text' : 'password'}
+              value={showKey ? apiKey : (hasKey ? maskedKey : apiKey)}
+              onChange={e => { setApiKey(e.target.value); setTestResult(null); }}
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx"
+            />
+            <button
+              onClick={() => setShowKey(!showKey)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+            >
+              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <button
+            onClick={testKey}
+            disabled={testing || !apiKey.trim()}
+            className="px-3 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 flex items-center gap-1.5"
+          >
+            {testing ? <div className="w-3 h-3 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" /> : '테스트'}
+          </button>
+          <button
+            onClick={saveKey}
+            disabled={saving || !apiKey.trim()}
+            className="px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 disabled:opacity-40"
+          >
+            {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : '저장'}
+          </button>
+        </div>
+        {testResult && (
+          <div className={`flex items-center gap-1.5 mt-2 text-xs ${testResult === 'success' ? 'text-emerald-600' : 'text-red-500'}`}>
+            {testResult === 'success' ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+            {testResult === 'success' ? `API 연결 성공${usageInfo ? ` — 사용량: ${usageInfo}` : ''}` : `API 연결 실패: ${testError || '키를 확인해 주세요.'}`}
+          </div>
+        )}
+      </div>
+
+      {hasKey && (
+        <div className="flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 rounded-lg px-3 py-2">
+          <CheckCircle className="w-3.5 h-3.5" />
+          DeepL API 키가 설정되어 있습니다. 번역 기능을 사용할 수 있습니다.
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── 다국어 관리 섹션 ── */
+function LanguageManagementSection() {
+  const { toast } = useToast();
+  const [enabledLangs, setEnabledLangs] = useState<string[]>(DEFAULT_ENABLED_LANGS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const ref = doc(db, 'settings', 'languages');
+    return onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setEnabledLangs(data.enabled?.length ? data.enabled : DEFAULT_ENABLED_LANGS);
+      }
+      setLoading(false);
+    }, () => setLoading(false));
+  }, []);
+
+  const saveLangs = async (langs: string[]) => {
+    setSaving(true);
+    try {
+      const labels: Record<string, string> = {};
+      for (const code of langs) {
+        labels[code] = LANGUAGE_META[code]?.label || code;
+      }
+      await setDoc(doc(db, 'settings', 'languages'), {
+        enabled: langs,
+        labels,
+        updatedAt: new Date().toISOString(),
+      });
+      toast('언어 설정이 저장되었습니다.');
+    } catch {
+      toast('저장 실패', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const addLang = (code: string) => {
+    if (!enabledLangs.includes(code)) {
+      const next = [...enabledLangs, code];
+      setEnabledLangs(next);
+      saveLangs(next);
+    }
+  };
+
+  const removeLang = (code: string) => {
+    const next = enabledLangs.filter(c => c !== code);
+    setEnabledLangs(next);
+    saveLangs(next);
+  };
+
+  const availableToAdd = Object.entries(LANGUAGE_META).filter(([code]) => !enabledLangs.includes(code));
+
+  if (loading) return <div className="py-4 text-center text-sm text-slate-400">로딩 중...</div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-4 border border-emerald-100">
+        <div className="flex items-start gap-3">
+          <Globe className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-slate-900">다국어 사이트 관리</p>
+            <p className="text-xs text-slate-500 mt-0.5">활성화된 언어의 사이트가 자동으로 생성됩니다. 한국어(기본)는 항상 활성화되어 있습니다.</p>
+            <p className="text-xs text-slate-400 mt-1">번역 데이터는 언어를 제거해도 유지됩니다. 라우트만 비활성화됩니다.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 활성 언어 목록 */}
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-2">활성 언어</label>
+        <div className="flex flex-wrap gap-2">
+          {/* 한국어 (고정) */}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-slate-900 text-white">
+            KO 한국어
+          </span>
+          {enabledLangs.map(code => {
+            const meta = LANGUAGE_META[code];
+            return (
+              <span
+                key={code}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800"
+              >
+                {code.toUpperCase()} {meta?.nativeName || code}
+                <button
+                  onClick={() => removeLang(code)}
+                  disabled={saving}
+                  className="ml-0.5 p-0.5 rounded-full hover:bg-emerald-200 transition-colors disabled:opacity-40"
+                  title="제거"
+                >
+                  <XIcon className="w-3 h-3" />
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 언어 추가 드롭다운 */}
+      {availableToAdd.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">언어 추가</label>
+          <div className="flex flex-wrap gap-2">
+            {availableToAdd.map(([code, meta]) => (
+              <button
+                key={code}
+                onClick={() => addLang(code)}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-40"
+              >
+                <Plus className="w-3 h-3" />
+                {code.toUpperCase()} {meta.nativeName}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SiteSettings() {
   const { toast } = useToast();
   const [settings, setSettings] = useState<SiteSettingsData>(defaultSettings);
@@ -233,7 +492,16 @@ export default function SiteSettings() {
       </div>
 
       <Section title="AI 설정" icon={<Sparkles className="w-4 h-4 text-blue-500" />} defaultOpen>
-        <ApiKeySection />
+        <div className="space-y-6">
+          <DeeplApiKeySection />
+          <div className="border-t border-slate-100 pt-6">
+            <ApiKeySection />
+          </div>
+        </div>
+      </Section>
+
+      <Section title="다국어 설정" icon={<Globe className="w-4 h-4 text-emerald-500" />} defaultOpen>
+        <LanguageManagementSection />
       </Section>
 
       <Section title="회사 정보">

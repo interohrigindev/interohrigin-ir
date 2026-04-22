@@ -226,7 +226,7 @@ export default function BrandShowcase({ brands }: Props) {
               Brand Portfolio
             </h2>
             <p className="mt-2 text-slate-500 text-sm md:text-base max-w-lg">
-              {lang === 'en'
+              {lang !== 'ko'
                 ? 'Seven beauty brands spanning premium skincare, haircare, and baby products'
                 : '프리미엄 스킨케어부터 헤어케어, 유아용품까지 — 다양한 카테고리를 아우르는 7개 뷰티 브랜드'}
             </p>
@@ -281,7 +281,7 @@ export default function BrandShowcase({ brands }: Props) {
             to="/brands"
             className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-brand-600 transition-colors"
           >
-            {lang === 'en' ? 'View All Brands' : '전체 브랜드 보기'} <ArrowRight className="w-4 h-4" />
+            {lang !== 'ko' ? 'View All Brands' : '전체 브랜드 보기'} <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </div>

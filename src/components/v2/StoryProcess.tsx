@@ -85,7 +85,7 @@ export default function StoryProcess({ items }: Props) {
     return () => ctx.revert();
   }, []);
 
-  const desc = (step: Step) => lang === 'en' ? step.description_en : step.description;
+  const desc = (step: Step) => lang !== 'ko' ? step.description_en : step.description;
 
   return (
     <div ref={rootRef} className="py-14 md:py-28">
@@ -99,7 +99,7 @@ export default function StoryProcess({ items }: Props) {
             How We Work
           </h2>
           <p className="mt-3 text-slate-500 text-sm md:text-base max-w-lg">
-            {lang === 'en'
+            {lang !== 'ko'
               ? 'From brand discovery to global scaling — a proven 4-step process'
               : '브랜드 발굴부터 글로벌 스케일링까지 — 검증된 4단계 프로세스'}
           </p>
