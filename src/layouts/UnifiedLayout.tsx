@@ -4,16 +4,38 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { Menu, X, ChevronDown } from 'lucide-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useLang } from '../contexts/LanguageContext';
 import { LANGUAGE_META } from '../lib/languages';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const sns = [
-  { label: 'Instagram', href: 'https://www.instagram.com/interohrigin_official/' },
-  { label: 'YouTube', href: 'https://www.youtube.com/@interohrigin' },
-  { label: 'Blog', href: 'https://blog.naver.com/interohrigin' },
-];
+const SNS_FALLBACK = {
+  instagram: 'https://www.instagram.com/interohrigin_official/',
+  youtube: 'https://www.youtube.com/@interohrigin',
+  blog: 'https://blog.naver.com/interohrigin',
+  kakao: '',
+};
+
+/** settings/site 문서의 social 필드 실시간 구독.
+ * 어드민에서 SNS URL 변경 시 헤더/푸터 즉시 반영. */
+function useSnsLinks() {
+  const [social, setSocial] = useState(SNS_FALLBACK);
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'site'), (snap) => {
+      const s = snap.data()?.social;
+      if (s) setSocial({ ...SNS_FALLBACK, ...s });
+    });
+    return unsub;
+  }, []);
+  return [
+    { label: 'Instagram', href: social.instagram },
+    { label: 'YouTube', href: social.youtube },
+    { label: 'Blog', href: social.blog },
+    { label: 'Kakao', href: social.kakao },
+  ].filter(s => s.href && s.href.trim() !== '');
+}
 
 const baseLinks = [
   { path: '/', label: 'Home', end: true },
@@ -42,6 +64,7 @@ export default function UnifiedLayout() {
   const navigate = useNavigate();
 
   const allLangs = ['ko', ...enabledLangs];
+  const sns = useSnsLinks();
 
   const switchToLang = (targetLang: string) => {
     const newPath = switchPath(targetLang, location.pathname);
@@ -340,6 +363,8 @@ function Footer() {
 
   const addressText = getUIString('footerAddress', lang);
   const descText = getUIString('footerDescription', lang);
+
+  const sns = useSnsLinks();
 
   return (
     <footer className="bg-slate-900 text-slate-400 text-sm">
