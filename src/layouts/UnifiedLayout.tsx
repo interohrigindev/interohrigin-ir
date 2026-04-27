@@ -11,24 +11,39 @@ import { LANGUAGE_META } from '../lib/languages';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const SNS_FALLBACK = {
-  instagram: 'https://www.instagram.com/interohrigin_official/',
-  youtube: 'https://www.youtube.com/@interohrigin',
-  blog: 'https://blog.naver.com/interohrigin',
-  kakao: '',
+const SITE_FALLBACK = {
+  social: {
+    instagram: 'https://www.instagram.com/interohrigin_official/',
+    youtube: 'https://www.youtube.com/@interohrigin',
+    blog: 'https://blog.naver.com/interohrigin',
+    kakao: '',
+  },
+  company: {
+    address: '서울특별시 강남구 선릉로121길 5, 3층 (논현동, 인터오리진타워)',
+    phone: '070-4188-0322',
+    email: 'biz@interohrigin.com',
+  },
 };
 
-/** settings/site 문서의 social 필드 실시간 구독.
- * 어드민에서 SNS URL 변경 시 헤더/푸터 즉시 반영. */
-function useSnsLinks() {
-  const [social, setSocial] = useState(SNS_FALLBACK);
+/** settings/site 문서 실시간 구독. 어드민 변경 시 헤더/푸터 즉시 반영. */
+function useSiteSettings() {
+  const [data, setData] = useState(SITE_FALLBACK);
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'settings', 'site'), (snap) => {
-      const s = snap.data()?.social;
-      if (s) setSocial({ ...SNS_FALLBACK, ...s });
+      const d = snap.data();
+      if (!d) return;
+      setData({
+        social: { ...SITE_FALLBACK.social, ...(d.social || {}) },
+        company: { ...SITE_FALLBACK.company, ...(d.company || {}) },
+      });
     });
     return unsub;
   }, []);
+  return data;
+}
+
+function useSnsLinks() {
+  const { social } = useSiteSettings();
   return [
     { label: 'Instagram', href: social.instagram },
     { label: 'YouTube', href: social.youtube },
@@ -361,10 +376,10 @@ function Footer() {
     label: l.label,
   }));
 
-  const addressText = getUIString('footerAddress', lang);
   const descText = getUIString('footerDescription', lang);
-
   const sns = useSnsLinks();
+  const { company } = useSiteSettings();
+  const addressText = company.address || getUIString('footerAddress', lang);
 
   return (
     <footer className="bg-slate-900 text-slate-400 text-sm">
@@ -422,7 +437,8 @@ function Footer() {
             {addressText.split('\n').map((line, i) => (
               <span key={i}>{i > 0 && <br />}{line}</span>
             ))}
-            <br />Tel. 070-4188-0322<br />biz@interohrigin.com
+            {company.phone && <><br />Tel. {company.phone}</>}
+            {company.email && <><br />{company.email}</>}
           </p>
         </div>
       </div>
